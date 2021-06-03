@@ -160,11 +160,15 @@ public class DefaultResourceLoader implements ResourceLoader {
 		else {
 			try {
 				// Try to parse the location as a URL...
+				// 这里处理 URL 标识的 Resource 定位
 				URL url = new URL(location);
 				return (ResourceUtils.isFileURL(url) ? new FileUrlResource(url) : new UrlResource(url));
 			}
 			catch (MalformedURLException ex) {
 				// No URL -> resolve as resource path.
+				// 如果既不是 classpath ，也不是 Url 标识的 resource  定位，则把 getResource 的
+				// 重任交给 getResourceByPath ,这个方法是一个protected 方法，默认的实现是得到
+				// 一个 ClassPathContextResource
 				return getResourceByPath(location);
 			}
 		}

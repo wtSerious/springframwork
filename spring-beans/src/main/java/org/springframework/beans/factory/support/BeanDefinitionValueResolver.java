@@ -303,6 +303,7 @@ class BeanDefinitionValueResolver {
 		try {
 			Object bean;
 			Class<?> beanType = ref.getBeanType();
+			// 如果 ref 实在双亲IOC容器中，那就到双亲Ioc容器中去获取
 			if (ref.isToParent()) {
 				BeanFactory parent = this.beanFactory.getParentBeanFactory();
 				if (parent == null) {
@@ -319,6 +320,7 @@ class BeanDefinitionValueResolver {
 				}
 			}
 			else {
+				// 在当前IoC容器中去获取Bean,这里会触发一个getBean的过程，如果依赖注入没有发生，这里会触发相应的依赖注入的发生
 				String resolvedName;
 				if (beanType != null) {
 					NamedBeanHolder<?> namedBean = this.beanFactory.resolveNamedBean(beanType);

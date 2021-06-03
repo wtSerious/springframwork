@@ -243,7 +243,11 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 
 	@Override
 	public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
+		// 解析 bean 属性上的注解，并将属性封装成injectionMetadata
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, beanType, null);
+		// 对注入的metadata对象进行检查，没有注册的bd需要进行注册。最后添加到metadata对象的checkedElements集合中。
+		//？不是很懂
+		// 好像是把没有被注册为 beandeifinition 的对象属性注册为 beanDefinition
 		metadata.checkConfigMembers(beanDefinition);
 	}
 
@@ -394,8 +398,10 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 
 	@Override
 	public PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName) {
+		// 获得类被封装的元数据们，InjectionMetadata
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
 		try {
+			//注入属性
 			metadata.inject(bean, beanName, pvs);
 		}
 		catch (BeanCreationException ex) {
@@ -443,7 +449,10 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		// Fall back to class name as cache key, for backwards compatibility with custom callers.
 		String cacheKey = (StringUtils.hasLength(beanName) ? beanName : clazz.getName());
 		// Quick check on the concurrent map first, with minimal locking.
+		// InjectionMetadata 其实就是元数据的包装类,InjectionMetadata持有Collection<InjectedElement> elements
+		// 一个类的InjectedElement被保存在一个容器里，我看代码里是用List来保存的
 		InjectionMetadata metadata = this.injectionMetadataCache.get(cacheKey);
+		// 这里的加锁方式很像 单例模式
 		if (InjectionMetadata.needsRefresh(metadata, clazz)) {
 			synchronized (this.injectionMetadataCache) {
 				metadata = this.injectionMetadataCache.get(cacheKey);
@@ -451,7 +460,9 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 					if (metadata != null) {
 						metadata.clear(pvs);
 					}
+					//扫描元数据是不是自动注入，创建被自动注入元数据
 					metadata = buildAutowiringMetadata(clazz);
+					// 把一个类的 InjectionMetadata 放入 cache中
 					this.injectionMetadataCache.put(cacheKey, metadata);
 				}
 			}
@@ -470,6 +481,8 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 		do {
 			final List<InjectionMetadata.InjectedElement> currElements = new ArrayList<>();
 
+			// 遍历类的每个属性，判断属性是否是指定的属性
+			// 如果存在则保存，这里注意，属性保存的类型是 AutowiredFieldElement
 			ReflectionUtils.doWithLocalFields(targetClass, field -> {
 				MergedAnnotation<?> ann = findAutowiredAnnotation(field);
 				if (ann != null) {
@@ -484,6 +497,8 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 				}
 			});
 
+			// 遍历类中的每个方法，判断属性是否包含指定的属性(通过 findAutowiredAnnotaion 方法)
+			// 如果存在则把偶才能，这里助力，这里保存的类型是 AutowiredMethodElement
 			ReflectionUtils.doWithLocalMethods(targetClass, method -> {
 				Method bridgedMethod = BridgeMethodResolver.findBridgedMethod(method);
 				if (!BridgeMethodResolver.isVisibilityBridgeMethodPair(method, bridgedMethod)) {
@@ -637,10 +652,12 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 				}
 			}
 			else {
+				// 解析属性值
 				value = resolveFieldValue(field, bean, beanName);
 			}
 			if (value != null) {
 				ReflectionUtils.makeAccessible(field);
+				// 设置属性值
 				field.set(bean, value);
 			}
 		}
@@ -654,6 +671,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 			TypeConverter typeConverter = beanFactory.getTypeConverter();
 			Object value;
 			try {
+				// 解析依赖
 				value = beanFactory.resolveDependency(desc, beanName, autowiredBeanNames, typeConverter);
 			}
 			catch (BeansException ex) {
@@ -669,6 +687,7 @@ public class AutowiredAnnotationBeanPostProcessor implements SmartInstantiationA
 							String autowiredBeanName = autowiredBeanNames.iterator().next();
 							if (beanFactory.containsBean(autowiredBeanName) &&
 									beanFactory.isTypeMatch(autowiredBeanName, field.getType())) {
+								// 这个 shortcutDependencyDescriptor 是什么
 								cachedFieldValue = new ShortcutDependencyDescriptor(
 										desc, autowiredBeanName, field.getType());
 							}

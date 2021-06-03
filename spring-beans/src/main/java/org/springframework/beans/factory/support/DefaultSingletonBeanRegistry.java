@@ -154,9 +154,13 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
 		synchronized (this.singletonObjects) {
+			//如果一级缓存里没有 (bean对象列表)
 			if (!this.singletonObjects.containsKey(beanName)) {
+				//放入二级缓存 (实例化对象列表)
 				this.singletonFactories.put(beanName, singletonFactory);
+				//从二级缓存里 (循环对象依赖表)
 				this.earlySingletonObjects.remove(beanName);
+				//已经创建成功的单例名称列表
 				this.registeredSingletons.add(beanName);
 			}
 		}
@@ -179,18 +183,27 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		// Quick check for existing instance without full singleton lock
+		// 快速检查是否已经在 singletonObjects 缓存里
 		Object singletonObject = this.singletonObjects.get(beanName);
+		// 如果 singleton
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
+			// 从 earlySingletonObjects 里取
 			singletonObject = this.earlySingletonObjects.get(beanName);
 			if (singletonObject == null && allowEarlyReference) {
 				synchronized (this.singletonObjects) {
 					// Consistent creation of early reference within full singleton lock
+					// 如果 singletenObjects 里没有
 					singletonObject = this.singletonObjects.get(beanName);
 					if (singletonObject == null) {
+						// 从 earlySingletonObjects 里取
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
+							// 从 singletonFactories 里取 singletonFactories
+							// 什么时候加入到 singletonFactories的呢?
+							// 我记得应该是在调用某个后置处理器的时候放进去的
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
+								// 从 singletonFactory 中获取提前暴露的 bean
 								singletonObject = singletonFactory.getObject();
 								this.earlySingletonObjects.put(beanName, singletonObject);
 								this.singletonFactories.remove(beanName);
@@ -224,6 +237,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+				// 做一些 bean 创建前的准备工作: 记录beanName 正在加载的状态(添加到 singletonsCurrentlyInCreation缓存中)
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -231,6 +245,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+					// 通过回调方式获取 bean 实例
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
@@ -254,6 +269,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+					// 移除 bean 正在加载的状态？
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) {

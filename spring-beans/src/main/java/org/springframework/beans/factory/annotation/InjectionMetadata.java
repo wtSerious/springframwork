@@ -112,10 +112,13 @@ public class InjectionMetadata {
 
 	public void inject(Object target, @Nullable String beanName, @Nullable PropertyValues pvs) throws Throwable {
 		Collection<InjectedElement> checkedElements = this.checkedElements;
+		// 在之前解析注解把元数据封装成InjecetedElement，还会检查一遍放入checkedElements的
+		// 如果 checkedElements 为空就拿injectedElements 否则就用检查过的Elements
 		Collection<InjectedElement> elementsToIterate =
 				(checkedElements != null ? checkedElements : this.injectedElements);
 		if (!elementsToIterate.isEmpty()) {
 			for (InjectedElement element : elementsToIterate) {
+				//属性注入
 				element.inject(target, beanName, pvs);
 			}
 		}

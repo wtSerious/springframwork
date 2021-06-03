@@ -383,12 +383,14 @@ public abstract class AbstractNestablePropertyAccessor extends AbstractPropertyA
 	private Object getPropertyHoldingValue(PropertyTokenHolder tokens) {
 		// Apply indexes and map keys: fetch value for all keys but the last one.
 		Assert.state(tokens.keys != null, "No token keys");
+		// 设置 tokens 的索引和 keys
 		PropertyTokenHolder getterTokens = new PropertyTokenHolder(tokens.actualName);
 		getterTokens.canonicalName = tokens.canonicalName;
 		getterTokens.keys = new String[tokens.keys.length - 1];
 		System.arraycopy(tokens.keys, 0, getterTokens.keys, 0, tokens.keys.length - 1);
 
 		Object propValue;
+		// getPropertyValue取得Bean中注入对象的引用
 		try {
 			propValue = getPropertyValue(getterTokens);
 		}

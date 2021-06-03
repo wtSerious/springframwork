@@ -55,6 +55,8 @@ import org.springframework.lang.Nullable;
  * @see ConfigurableBeanFactory#addBeanPostProcessor
  * @see BeanFactoryPostProcessor
  */
+// 在 Bean 对象实例化和依赖注入完毕后，在显示调用初始化方法的前后添加我们的逻辑
+// 注意实在 Bean 实例化完毕后及依赖注入完成后出发的。
 public interface BeanPostProcessor {
 
 	/**
